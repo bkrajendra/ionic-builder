@@ -84,6 +84,32 @@ jobs:
             ./gradlew assembleDebug
 ```
 
+### Adding GitHub Secrets
+To add GitHub secrets for your repository, follow these steps:
+
+1. **Access Repository Settings**
+   - Go to your GitHub repository in your web browser
+   - Click on the "Settings" tab at the top of your repository page
+
+2. **Navigate to Secrets**
+   - In the left sidebar, click on "Secrets and variables"
+   - Select "Actions"
+
+3. **Add a New Secret**
+   - Click on the "New repository secret" button
+   - Enter the following details:
+     - **Name**: Enter the name of your secret (e.g., `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN`)
+     - **Value**: Enter the value of your secret (e.g., your DockerHub username or access token)
+   - Click "Add secret" to save it
+
+4. **Repeat for Additional Secrets**
+   - If you need to add more secrets (like `DOCKERHUB_TOKEN`), repeat the process
+
+These secrets will be securely stored and can be used in your GitHub Actions workflows using the syntax:
+```yaml
+${{ secrets.SECRET_NAME }}
+```
+
 ## Support
 For issues, please open an [issue](https://github.com/your-repo/issues) or submit a pull request.
 
