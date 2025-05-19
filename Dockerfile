@@ -16,7 +16,7 @@ ARG GRADLE_VERSION=8.2.1
 # See https://www.npmjs.com/package/@ionic/cli
 ARG IONIC_VERSION=7.2.0
 # See https://www.npmjs.com/package/@capacitor/cli
-ARG CAPACITOR_VERSION=6.0.0
+ARG CAPACITOR_VERSION=7.2.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
