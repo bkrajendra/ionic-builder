@@ -97,9 +97,16 @@ pair_device() {
         exit 1
     fi
 
-    echo "Pairing successful. Connecting on port $ADB_PORT..."
-    adb connect "$DEVICE_IP:$ADB_PORT"
+    echo "Pairing successful. Connecting for ADB on port $ADB_PORT..."
+    if ! adb connect "$DEVICE_IP:$ADB_PORT"; then
+        echo "Connect failed on port $ADB_PORT. On Android 11+ the device may show a different port (e.g. 'Connect to IP:xxxxx'). Try: adb connect $DEVICE_IP:<port>" >&2
+        exit 1
+    fi
+    echo ""
     adb devices
+    if ! adb devices | grep -q "$DEVICE_IP"; then
+        echo "If the device still does not appear, use the port shown on your device under 'Connect to' and run: adb connect $DEVICE_IP:<port>" >&2
+    fi
 }
 
 # --- new ---

@@ -25,7 +25,6 @@
   - [build — build Android APK](#build--build-android-apk)
   - [install — install APK on device](#install--install-apk-on-device)
   - [help](#help)
-- [CI/CD Integration](#cicd-integration)
 - [Support](#support)
 - [License](#license)
 
@@ -87,11 +86,11 @@ docker build -t bkrajendra/ionic-builder:ionic-8 .
 
 ### Interactive shell
 
-Mount your project and open a shell. Use this to run any Ionic/Capacitor/Cordova commands or the [utils script](#utils-script). The extra **`-v /workdir/node_modules`** keeps the host’s `node_modules` out of the container (avoids esbuild/Windows compatibility issues).
+Mount your project and open a shell. Use this to run any Ionic/Capacitor/Cordova commands or the [utils script](#utils-script). The extra **`-v /workdir/node_modules`** keeps the host’s `node_modules` out of the container (avoids esbuild/Windows compatibility issues). Use **`--network host`** so the container can reach your Android device for wireless ADB (pair, connect, install).
 
 ```bash
 # From your project root (or the folder that contains your project)
-docker run -it --rm -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
+docker run -it --rm --network host -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
 ```
 
 Inside the container you’re in `/workdir` (your project). Run **`npm install`** or **`npm ci`** once so dependencies are installed for Linux, then run `ionic`, `npx cap`, or **`utils`** as needed.
@@ -100,36 +99,36 @@ Inside the container you’re in `/workdir` (your project). Run **`npm install`*
 
 ```bash
 # Prefer: use Windows path (Git for Windows)
-docker run -it --rm -v "$(pwd -W):/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
+docker run -it --rm --network host -v "$(pwd -W):/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
 ```
 
 If `pwd -W` is not available, use `cygpath`:
 
 ```bash
-docker run -it --rm -v "$(cygpath -w "$(pwd)"):/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
+docker run -it --rm --network host -v "$(cygpath -w "$(pwd)"):/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
 ```
 
 Or use **PowerShell** or **CMD** from your project directory:
 
 ```powershell
 # PowerShell
-docker run -it --rm -v "${PWD}:/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
+docker run -it --rm --network host -v "${PWD}:/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
 ```
 
 ```cmd
 REM CMD (run from your project directory)
-docker run -it --rm -v "%CD%:/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
+docker run -it --rm --network host -v "%CD%:/workdir" -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash
 ```
 
 ### Build Android APK
 
-Run from the host; the container will build and exit. Mount the directory that **contains** your Ionic project so that the project folder name matches what you pass to the script. Use **`-v /workdir/node_modules`** so the container uses Linux-built dependencies. Run **`npm ci`** (or `npm install`) in the container before building.  
+Run from the host; the container will build and exit. Mount the directory that **contains** your Ionic project so that the project folder name matches what you pass to the script. Use **`-v /workdir/node_modules`** so the container uses Linux-built dependencies. Add **`--network host`** if you will use the same container for device install (e.g. `utils install`) so ADB can reach the device.  
 *(On Git Bash use the same [volume fix](#interactive-shell) as for the interactive shell, e.g. `$(pwd -W)`.)*
 
 **Capacitor (manual commands):**
 
 ```bash
-docker run --rm -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
+docker run --rm --network host -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
   npm ci && ionic build && npx cap sync android && cd android && ./gradlew assembleDebug
 "
 ```
@@ -137,22 +136,22 @@ docker run --rm -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-b
 **Cordova:**
 
 ```bash
-docker run --rm -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
+docker run --rm --network host -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
   npm ci && ionic cordova build android
 "
 ```
 
-Or use the [utils script](#build--build-android-apk) inside the container (e.g. after `docker run -it ... bash`); run `npm ci` once in the container before using the script.
+Or use the [utils script](#build--build-android-apk) inside the container (e.g. after `docker run -it --network host ... bash`); run `npm ci` once in the container before using the script.
 
 ### Run the Ionic dev server
 
 ```bash
-docker run -it --rm -p 8100:8100 -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
+docker run -it --rm --network host -v "$(pwd)":/workdir -v /workdir/node_modules bkrajendra/ionic-builder:ionic-8 bash -c "
   npm ci && ionic serve --host=0.0.0.0
 "
 ```
 
-*(On Git Bash use `$(pwd -W)` for the first volume.)* Run `npm ci` once so dependencies exist in the container; then open [http://localhost:8100](http://localhost:8100) in your browser.
+*(On Git Bash use `$(pwd -W)` for the first volume.)* With `--network host`, the app is reachable at [http://localhost:8100](http://localhost:8100). Run `npm ci` once so dependencies exist in the container.
 
 ---
 
@@ -207,6 +206,12 @@ utils pair -ip <device_ip> -pt <pairing_port> -code <pairing_code> [-adb <adb_po
 ```bash
 utils pair -ip 192.168.1.100 -pt 37123 -code 123456
 ```
+
+**If you paired manually** (e.g. `adb pair IP:port` + code) and `adb devices` is empty: pairing alone is not enough — you must **connect** on the ADB port. On Android 11+ wireless debugging, the device shows “Connect to IP:**port**” (often not 5555). Run:
+```bash
+adb connect 172.16.1.16:<port>
+```
+Use the port shown on the device, then run `adb devices` again.
 
 ### new — create Ionic project
 
@@ -291,28 +296,6 @@ utils --help
 
 ---
 
-## CI/CD Integration
-
-Use the image in GitHub Actions, GitLab CI, Jenkins, or Bitbucket Pipelines. Mount your workspace to **`/workdir`** so paths match the examples above.
-
-**Example: GitHub Actions (Capacitor)**
-
-```yaml
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build Ionic App (Capacitor)
-        uses: addnab/docker-run-action@v3
-        with:
-          image: bkrajendra/ionic-builder:ionic-8
-          options: -v ${{ github.workspace }}:/workdir
-          run: |
-            ionic build
-            npx cap sync android
-            cd android && ./gradlew assembleDebug
-```
 
 ### Adding GitHub Secrets
 
